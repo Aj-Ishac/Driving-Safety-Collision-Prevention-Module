@@ -1,222 +1,233 @@
 #include "Arduino.h"
-#include <SimpleDHT.h>
-#include <Wire.h>
-#include <I2C_Anything.h>
+//#include "dht.h"
+//#include <SoftwareSerial.h>
 
+//Define pins when hardware arrives!
 const int Trigger_Pin = 3;
 const int Echo_PIN = 2;
-const int Buzzer_Pin = 4;
-const int DHT_Pin = 5;
-const int RedLED_Pin = 6;
+***************************************************************
+//const int Buzzer_Pin = 4;
+/***************************************************************
+  const int DHT_Pin DHT_PinNum
+  //***************************************************************
+  const int LED_RedPin  LED_RedPinNum
+  const int LED_GrnPin  LED_GreenPinNum
+  //***************************************************************
+  const int Button_Pin  ButtonPin_Num
+  //***************************************************************
+  SoftwareSerial BTserial(rxPin, txPin); // rxPin, txPin*/
 
-int LED_State = LOW;
-unsigned long previousMillis = 0;
-unsigned long ledinterval = 500;             //***LED BLINK FREQUENCY CONTROLLER***
-const byte SLAVE_ADDRESS = 42;
-
-SimpleDHT11 dht11(DHT_Pin);
 
 void setup()
 {
 
-  Serial.begin(9600);                     //Default communication channel
-  Serial.println("Master Serial channel is ready at 9600");
-  Wire.begin();
-  
-  delay(1000);
+  Serial.begin(9600);                 //Default communication channel
+  Serial.println("Serial channel is ready at 9600");    //temp for testing purposes
+  delay(2000);
+  //BTserial.begin(38400);              //Bluetooth communication channel
+  //Serial.println("BTserial channel is ready at 38400"); //temp for testing purposes
+  //delay(2000);
 
+  //Ultrasonic Sensor
   pinMode(Trigger_Pin, OUTPUT);
   pinMode(Echo_PIN, INPUT);
-  pinMode(Buzzer_Pin, OUTPUT);
-  pinMode(RedLED_Pin, OUTPUT);
+
+  //Buzzer
+  //pinMode(Buzzer_Pin, OUTPUT);
+  /*
+    //LED RED&GRN
+    pinMode(LED_RedPin,OUTPUT);
+    pinMode(LED_GrnPin,OUTPUT);
+
+    //Button
+    pinMode(Button_Pin, INPUT);*/
 
 
-  
 }
-
 
 void loop()
-{ 
-  float HCSR04_Distance;
-  int   Buzzer_Frequency;
-  bool  isBeeping;
-  byte DHT11_Temperature;
-  byte DHT11_Humidity;
-  
-  Ultrasonic_CollisionDetect(Trigger_Pin, Echo_PIN, Buzzer_Pin, HCSR04_Distance, Buzzer_Frequency, isBeeping);
-  TempHumidity_Detect(DHT_Pin,DHT11_Temperature,DHT11_Humidity);
+{
 
-  //add Buzzer_Frequency to led blink frequency parameter
-  LED_Blink(RedLED_Pin);                    
+  //digitalWrite(LED_RedPin,HIGH);           //Red LED on when powered.
 
+  Ultrasonic_CollisionDetect(Trigger_Pin, Echo_PIN);
+  //TempHumidity_Detect(DHT_Pin);
+  //GreenLED_Blink(LED_GrnPin);            //To be used for debugging at a later date.
 
-  Wire.beginTransmission (SLAVE_ADDRESS);
-  I2C_writeAnything (HCSR04_Distance);
-  I2C_writeAnything (Buzzer_Frequency);
-  I2C_writeAnything (isBeeping);
-  I2C_writeAnything (DHT11_Temperature);
-  I2C_writeAnything (DHT11_Humidity);
-  Wire.endTransmission ();
- 
-  delay(250);
 }
 
-void Ultrasonic_CollisionDetect(int, int, int,float &HCSR04_Distance,int &Buzzer_Frequency, bool &isBeeping) 
+void Ultrasonic_CollisionDetect(int, int)
 {
-  //need to define HCSR04_Distance, Buzzer_Frequency, isBeeping
+
   digitalWrite(Trigger_Pin, LOW);
   delayMicroseconds(2);
   digitalWrite(Trigger_Pin, HIGH);
   delayMicroseconds(10);
   digitalWrite(Trigger_Pin, LOW);
 
-  int Min_Detection = 20;                  //***Min Detection Controller***  current: 0.4m  CURRENT VALUES ARE FOR TESTING PURPOSES
-  int Max_Detection = 55;                 //***Max Detection Controller***  current: 3.0m  CURRENT VALUES ARE FOR TESTING PURPOSES
+  //Limitation is 20mm-4000mm
+  int Min_Detection = 400;               //***Min Detection Controller***  current: 0.4m
+  int Max_Detection = 3000;              //***Max Detection Controller***  current: 3.0m
 
   long Duration;                          //Duration of signal to leave TriggerPin and return to EchoPin
   float Distance;                         //Calculated distance in centimeters
-  int BuzzerFreq;
+  //int BuzzerFreq;
   //bool isBeeping;
-  
-  Duration = pulseIn(Echo_PIN, HIGH);     //Duration signal takes to traverse from TriggerPin to EchoPin
-  Distance = (Duration * 0.034) / 2;      //Distance calculation in cm - currently linear. needs to be exponential for satisfying feedback
-  HCSR04_Distance = Distance;
-   
-  BuzzerFreq = Distance * 5;             //***Buzzer Frequency Controller** current base value: Distance * 10;
-  
-  
-  
-  Buzzer_Frequency = BuzzerFreq;
 
-  //Turn off buzzer when higher than min distance
-  //noTone(Buzzer_Pin);  turns off sound
-  if (Distance > Max_Detection){          
-    noTone(Buzzer_Pin);                            
-    isBeeping = false;
-    Serial.print("Track 2 ");
-    Serial.print("BuzzerFreq: ");
-    Serial.print(BuzzerFreq);
-    Serial.print(" ");
-  }
+
+  Duration = pulseIn(Echo_PIN, HIGH);     //Duration signal takes to traverse from TriggerPin to EchoPin
+  Distance = (Duration * 0.034) / 2;      //Distance calculation in cm
+  BuzzerFreq = Distance * 10;             //***Buzzer Frequency Controller***
+
+  /*if (Distance > Max_Detection){           //Turn off buzzer when higher than min distance
+    digitalWrite(Buzzer_Pin,LOW);         //analogWrite(Buzzer_Pin,0-255)
+    //isBeeping = false;
     else
   {
-    //Continuously buzzer beep max frequency when lower than min distance
-    if (Distance < Min_Detection){         
-      BuzzerFreq = 0;
-      tone(Buzzer_Pin, 1800, BuzzerFreq);
-      isBeeping = false;
-      Serial.print("Track 0 ");
-      Serial.print("BuzzerFreq: ");
-      Serial.print(BuzzerFreq);
-      Serial.print(" ");
-    }
+    if (Distance < Min_Detection)     //Turn on buzzer to max frequency when lower than min distance
+      digitalWrite(Buzzer_Pin,HIGH);
+      //isBeeping = true;
       else
     { //If distance is between min and max distance, frequency of buzzing dependent on BuzzerFreq/Distance
-      //tone(Buzzer_Pin, 1800, 250) ex:tone(Buzzer_Pin, desired frequency Hz, duration in ms)
-      tone(Buzzer_Pin, 1800, BuzzerFreq);
+      digitalWrite(Buzzer_Pin,HIGH);
       delay(BuzzerFreq);
-      //noTone(Buzzer_Pin);
-      isBeeping = true;
-      Serial.print("Track 1 ");
-      Serial.print("BuzzerFreq: ");
-      Serial.print(BuzzerFreq);
-      Serial.print(" ");
+      digitalWrite(Buzzer_Pin,LOW);
+      //isBeeping = true;
 
+      }
     }
   }
 
-  Serial.print("Distance:");
-  Serial.print(Distance);
-  Serial.print("cm");
-  Serial.print(" isBeeping:");
-  Serial.println(isBeeping);
+  Serial.print("Distance: ");
+  Serial.println(Distance);
   
-  delay(250);
+  /*
 
+
+  //return isBeeping;
 
 }
-  
-void TempHumidity_Detect(int, byte &DHT11_Temperature, byte &DHT11_Humidity)
-{
-    byte temperature = 0;
-    byte humidity = 0;
-  
-    int err = SimpleDHTErrSuccess;
-    if ((err = dht11.read(&temperature, &humidity, NULL)) != SimpleDHTErrSuccess)
-    {
-    Serial.print("Read DHT11 failed, err=");
-    Serial.print(SimpleDHTErrCode(err));
-    Serial.print(",");
-    Serial.println(SimpleDHTErrDuration(err));
 
-    //temp = temperature;
-    //hum  = humidity;
-    
-    delay(200);
-    
-    return;
-    }
 
-    Serial.print("Temp: ");
-    Serial.print((int)temperature);
-    DHT11_Temperature = temperature;
-    Serial.print(" *C, ");
-    Serial.print((int)humidity);
-    DHT11_Humidity = humidity;
-    Serial.println(" H");
+//yellow ground
+//orange 5v
+//red 2
+//brown 3
 
-    delay(200);
-    
-}
 
-void LED_Blink(int LED_Input)
-{
+
+
+
+
+
+
+/*int DataToTransmit()//Master BT Communication
+  {
+
+  if(Serial.available() > 0)
+  {
+    BT_Data = Serial.read();
+    state = 0;
+  }
+  if(info == '1')
+  {
+
+
+
+  }
+
+  else if(info == '0'){
+
+
+
+
+
+
+  if(BTserial.available()              //Read if available data exists in serial port
+    Serial.write(BTserial.read());
+
+  if(Serial.available())
+  BTSerial.write(Serial.read());
+
+  }
+
+  void GreenLED_Blink(int)
+  {
+
+  int Led_State = LOW;
+  unsigned long previousMillis = 0;
   unsigned long currentMillis = millis();
-   
-  if (currentMillis - previousMillis > ledinterval) {
+  const long interval = 1000;
+
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED
     previousMillis = currentMillis;
-    if (LED_State == LOW)
-      LED_State = HIGH;
-    else
-      LED_State = LOW;
-    digitalWrite(LED_Input, LED_State);
+
+    // if the LED is off turn it on and vice-versa:
+    if (ledState == LOW) {
+      ledState = HIGH;
+    } else {
+      ledState = LOW;
+    }
+
+    // set the LED with the ledState of the variable:
+    digitalWrite(ledPin, ledState);
+
+
+
+  void TempHumidity_Detect(int)
+  {
+
+  int DHT11_Check;
+
+  DHT11_Check = DHT.read11(DHT11_PIN);
+  Serial.print("Temperature: ");
+  Serial.println(DHT.temperature);
+  delay(1000)
+  Serial.print("Humidity: ");
+  Serial.println(DHT.humidity);
+  delay(1000);
+
   }
-}
 
+*/
 
-
-    //21:27:10.112 -> OK
-    //21:27:39.837 -> +UART:4800,0,0,
-    //21:27:39.837 -> OK
-    //21:27:45.474 -> OK
-    //21:27:53.807 -> OK
-    //21:28:44.808 -> OK
-
-
-
-
-//BT
-//THIS IS WHAT WORKS FOR MASTER
-//http://phillipecantin.blogspot.com/2014/08/hc-05-bluetooth-link-with-zero-code.html
-//https://www.youtube.com/watch?v=hyME1osgr7s
-//https://howtomechatronics.com/tutorials/arduino/how-to-configure-pair-two-hc-05-bluetooth-module-master-slave-commands/
-//http://www.martyncurrey.com/connecting-2-arduinos-by-bluetooth-using-a-hc-05-and-a-hc-06-pair-bind-and-link/
-
-//https://www.instructables.com/How-to-Configure-HC-05-Bluetooth-Module-As-Master-/
-//POTENTIAL FIX TO BT SHITSHOW
-
-//TRANSFER DATA THROUGH ARDUINOS THROUGH WIRES
-//www.youtube.com/watch?v=PnG4fO5_vU4
-
-//beeping_freq needs to be more exponential vs linear slope
-//beeping freq rework: needs to be independant of exact value of min/max and leaning more towards how close and how far are we to min/max    
-//blink when special state: true - figure out wtf special state will be used for later**********************************************************************************
 
 //***main device***
 //ulrasonic work HC-SR04        DONE
 //buzzer Piezzo Buzzer          DONE
 //humidity and temp DHT11       DONE
 //led                           DONE
-//bluetooth HC-05               NEXT
+//button                        DONE
+//bluetooth HC-05               DONE
+//battery                       NEXT
+
+//***alt device***
+//bluetooth HC-05
+//buzzer Piezzo Buzzer
+//led
 //button
-//battery                       
+//battery
+
+
+
+//analogWrite(Buzzer_Pin,0-255) vs digitalWrite(Buzzer_Pin,LOW-HIGH)
+//https://arduino.stackexchange.com/questions/35873/whats-the-difference-between-analogwrite-and-digitalwrite
+//HC-SR04 AND PIEZZO BUZZER
+//https://github.com/d03n3rfr1tz3/HC-SR04
+//DHT11
+//https://desire.giesecke.tk/index.php/2018/01/30/esp32-dht11/
+//https://github.com/adafruit/DHT-sensor-library
+//https://www.youtube.com/watch?v=OogldLc9uYc
+//https://toptechboy.com/arduino-tutorial-50-how-to-connect-and-use-the-dht11-temperature-and-humidity-sensor/
+//Sometimes this resistor is already integrated in the module, sometimes its necessary to add it.
+//Library Setup
+//https://www.arduino.cc/en/Hacking/LibraryTutorial
+//button func
+//You can use the button as a switcher for the Arduino power. Just wire up the button between the battery + out and the Arduino's Vin port.
+//Connecting 2 Arduinos by Bluetooth using a HC-05 and a HC-06: Pair, Bind, and Link
+//http://www.martyncurrey.com/connecting-2-arduinos-by-bluetooth-using-a-hc-05-and-a-hc-06-pair-bind-and-link/
+//https://howtomechatronics.com/tutorials/arduino/how-to-configure-pair-two-hc-05-bluetooth-module-master-slave-commands/
+//https://www.youtube.com/watch?v=afGxMfy7_0A
+//master to send data to slave and once confirmation is received, green led lights up as confirmation visual
+//https://www.youtube.com/watch?v=3WR2-HT_MiQ
