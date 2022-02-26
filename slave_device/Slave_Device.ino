@@ -1,19 +1,10 @@
-//BT FIX PAIRING
-//PLEASE
-//https://www.instructables.com/Arduino-Bluetooth-Master-and-Slave-Using-Any-HC-05/
-//how do i run a function every 2 mins in the loop
-//https://forum.arduino.cc/t/how-do-i-run-a-function-every-2-mins-in-the-loop/325393
-//
-
-//wire var transfer
-//https://www.arduino.cc/en/Tutorial/LibraryExamples/MasterWriter#code
-
 //---------------LIBRARIES---------------
 #include "Arduino.h"
 #include <Wire.h> 
 #include <LCD.h>
 #include <LiquidCrystal_I2C.h>
 #include <I2C_Anything.h>
+#include <SoftwareSerial.h>
 
 //---------------CONSTANTS---------------
 const int GreenLED_Pin = 2;
@@ -33,6 +24,7 @@ volatile byte    DHT11_Humidity;
 //A5 -> YELLOW -> YELLOW -> BROWN -> A5
 
 LiquidCrystal_I2C lcd(0x27,2,1,0,4,5,6,7);
+SoftwareSerial BT(10,11);                 //TX,RX pins respectively
 
 //---------------------------------------
  
@@ -54,29 +46,6 @@ void setup()
   lcd.setBacklight(HIGH);
 
   Serial.println("*******************************************");
-   /*
-   Wire.setClock(10000);
-   lcd.setCursor(2,0);
-   lcd.print("Distance: ");
-   lcd.print(String(HCSR04_Distance));
-   lcd.setCursor(13,0);
-   lcd.print("cm");
-   lcd.setCursor(4,1);
-   lcd.print("Temp: ");
-   lcd.print(String(DHT11_Temperature));
-   lcd.print((char)223); //Degree symbol
-   lcd.print("C");
-   lcd.setCursor(3,2);
-   lcd.print("Humidity: ");
-   lcd.print(String(DHT11_Humidity));
-   lcd.print("%");
-   lcd.setCursor(3,3);
-   lcd.print("Battery: ");
-   lcd.setCursor(11,3);
-   lcd.print("%"); 
-*/
-
- 
   
 }
 
@@ -89,7 +58,7 @@ void setup()
 
 void loop()
 {
-    
+    //temp measures for wired data transfer
     if (haveData)
     {
     SerialPrintReceivables(HCSR04_Distance,Buzzer_Frequency,isBeeping,DHT11_Temperature,DHT11_Humidity);
@@ -98,35 +67,21 @@ void loop()
     
     haveData = false;
     }
+
+    if(Serial.available() > 0){
+
+       Incoming_value = Serial.read();
+       Serial.println(Incoming_value);
+
+      //parse incoming_value by splitting Incoming_value in two seperated by ;
+      //by doing so we get following values:
+      //Distance, DHT11_Temperature, DHT11_Humidity, Battery1, Min_Detection, Max_Detection
+  
+    }
     
   delay(250);
 
 }
-
-//---------------------------------------
-
-/*void OrderedPrioData_LCDPrint(SecondPrioData_RefreshRate){
-
-if (haveData)
-{
-SecondPrioData_RefreshRate = 10000; //***2nd Prio Data Refresh Rate Controller***
-//every i++ = 500ms
-//if we want 2nd prio data to refresh every 10secs
-//500 * 10ms * 1000
-for(i=0; i>SecondPrioData_RefreshRate; i++)
-{
-  { 
-  FirstPrioData_LcdPrint(...);  
-  //SerialPrintReceivables(HCSR04_Distance,Buzzer_Frequency,isBeeping,DHT11_Temperature,DHT11_Humidity);
-  LCDPrintReceivables(HCSR04_Distance, Buzzer_Frequency, isBeeping, DHT11_Temperature, DHT11_Humidity);
-}
-  SecondPrioData_LCDPrint(...);
-
-    }
-  }
-}*/
-
-//---------------------------------------
 
 void BuzzerBeep(Buzzer_Frequency)
 {   
@@ -146,10 +101,8 @@ void BuzzerBeep(Buzzer_Frequency)
       Serial.print("BuzzerFreq: ");
       Serial.print(BuzzerFreq);
       Serial.print(" ");
-  }
-    else{
-    //Continuously buzzer beep max frequency when lower than min distance
-    if (Distance < Min_Detection){         
+      
+  }if else(Distance < Min_Detection){     
       BuzzerFreq = 0;
       tone(Buzzer_Pin, 1800, BuzzerFreq);
       isBeeping = false;
@@ -159,42 +112,16 @@ void BuzzerBeep(Buzzer_Frequency)
       Serial.print(" ");
     }
       else
-    { //If distance is between min and max distance, frequency of buzzing dependent on BuzzerFreq/Distance
+    {
       tone(Buzzer_Pin, 1800, BuzzerFreq);
       delay(BuzzerFreq);
-      //noTone(Buzzer_Pin);
       isBeeping = true;
       Serial.print("Track 1 ");
       Serial.print("BuzzerFreq: ");
       Serial.print(BuzzerFreq);
       Serial.print(" ");
-
     }
 }
-
-void LCD_CustomSymbol()
-{
-
-byte Heart[8] = 
-{
-0b00000,
-0b01010,
-0b11111,
-0b11111,
-0b01110,
-0b00100,
-0b00000,
-0b00000
-};
-
-lcd.setCursor(17,3);
-lcd.createChar(0, Heart);
-//lcd.write(byte(0));
-lcd.print(char(0));
-
-}
-
-//---------------------------------------
 
 void Convert_Meters_Or_AboveMax(float)
 {
@@ -219,11 +146,8 @@ void Convert_Meters_Or_AboveMax(float)
       lcd.print(String(HCSR04_Distance));
       lcd.print("cm");
       lcd.print("    ");
-  
     }  
 }
-
-//---------------------------------------
 
 void LCDPrintReceivables(float, int, bool, byte, byte)
 {
@@ -249,10 +173,8 @@ void LCDPrintReceivables(float, int, bool, byte, byte)
    lcd.print("% template"); 
    
    delay(250);
-   //lcd.clear();
 }
 
-//---------------------------------------
 
 void SerialPrintReceivables(float, int, bool, byte, byte)
 {
@@ -276,8 +198,6 @@ void SerialPrintReceivables(float, int, bool, byte, byte)
   delay(250); 
 }
 
-//---------------------------------------
-
 void receiveEvent (int howMany)
  {
    I2C_readAnything (HCSR04_Distance);
@@ -287,10 +207,3 @@ void receiveEvent (int howMany)
    I2C_readAnything (DHT11_Humidity);
    haveData = true;
  }
-
-//battery symbol on lcd in video. special character segment
-//https://www.youtube.com/watch?v=q9YC_GVHy5A
-//new ordered lcd
-//https://www.youtube.com/watch?v=nHioZBHHlac
-//bt easytransfer library
-//https://www.youtube.com/watch?v=afGxMfy7_0A
