@@ -2,11 +2,13 @@
 #include <SimpleDHT.h>
 #include <SoftwareSerial.h>
 
-const int Trigger_Pin = 3;
-const int Echo_PIN = 2;
+const int Trigger_Pin = 2;
+const int Echo_PIN = 3;
 const int Buzzer_Pin = 4;
 const int DHT_Pin = 5;
 const int RedLED_Pin = 6;
+const int rxPin  = 11;
+const int txPin  = 10;
 
 int LED_State = LOW;
 unsigned long previousMillis = 0;
@@ -14,21 +16,23 @@ unsigned long ledinterval = 500;          //***LED BLINK FREQUENCY CONTROLLER***
 const byte SLAVE_ADDRESS = 42;
 
 SimpleDHT11 dht11(DHT_Pin);
-SoftwareSerial BT(10,11);                 //TX,RX pins respectively
+SoftwareSerial BT = SoftwareSerial(txPin, rxPin);                 //TX,RX pins respectively
 
 void setup()
 {
-  Serial.begin(9600);                     //Default communication channel
+  Serial.begin(9600);                     //Default communication channel-
   BT.begin(9600);                         //Initiate BT communication
   Serial.println("Master Serial channel is ready at 9600");
 
   //On Startup - Play Buzzer Tune indicating successful startup to the user.
-  runStartupTune();
+  runStartupTune();  
 
   pinMode(Trigger_Pin, OUTPUT);
   pinMode(Echo_PIN, INPUT);
   pinMode(Buzzer_Pin, OUTPUT);
   pinMode(RedLED_Pin, OUTPUT);
+  pinMode(rxPin, INPUT);
+  pinMode(txPin, OUTPUT);
 }
 
 void loop()
@@ -39,38 +43,55 @@ void loop()
   byte DHT11_Humidity;
   int Battery;
   
-  int minDetection;
-  int maxDetection;
+  int minDetection = 0;
+  int maxDetection = 0;
   bool isMetric;
 
-  bluetoothRead(minDetection, maxDetection, isMetric);
+  bluetoothReceive(minDetection, maxDetection, isMetric);
   collectDistance(Trigger_Pin, Echo_PIN, Buzzer_Pin, Distance, buzzerFreq, isMetric);
-  releaseBuzzer(Distance, buzzerFreq, minDetection, maxDetection);
+  //releaseBuzzer(Distance, buzzerFreq, minDetection, maxDetection);
 
   //WIP: add cooldown on collecting new temp/humidity/battery values
-  collectTempHumdity(DHT_Pin,DHT11_Temperature,DHT11_Humidity);
+  collectTempHumdity(DHT_Pin, DHT11_Temperature, DHT11_Humidity);
+  
+  /*
   Battery = collectBattery();
-
   if(Battery < 20)
     LED_Blink(RedLED_Pin);
   else
     LED_State = HIGH;
-               
-  //string BTsend = distance;temp;humidity;battery
-  String BTsend;
-  BTsend = (Distance);
-  BTsend += ";";
-  BTsend += DHT11_Temperature;
-  BTsend += ";";
-  BTsend += DHT11_Humidity;
-  BTsend += ";";
-  BTsend += Battery;
-  
-  Serial.print(BTsend);
-  BT.println(BTsend);
+  */
+  Battery = 100;
+
+  Serial.print("A,");
+  Serial.println(Distance);
+  delay(500);
+  Serial.print("B,");
+  Serial.println(DHT11_Temperature);
+  delay(500);   
+  Serial.print("C,");
+  Serial.println(DHT11_Humidity);
+  delay(500);   
+  Serial.print("D,");
+  Serial.println(Battery);
+  delay(500);
+
+  //string BTsend = Distance;DHT11_Temperature;DHT11_Humidity;Battery
+  BT.print("A,");
+  BT.println(Distance);
+  delay(500);
+  BT.print("B,");
+  BT.println(DHT11_Temperature);
+  delay(500);   
+  BT.print("C,");
+  BT.println(DHT11_Humidity);
+  delay(500);   
+  BT.print("D,");
+  BT.println(Battery);
+  delay(500);
 }
 
-void bluetoothRead(int &minDetection, int &maxDetection, bool &isMetric)
+void bluetoothReceive(int &minDetection, int &maxDetection, bool &isMetric)
 {
   /* BT.read() from app user input, only occurs when user presses the button responsible:
    * minDetection, maxDetection, metricConvert, imperialConvert
@@ -90,6 +111,9 @@ void bluetoothRead(int &minDetection, int &maxDetection, bool &isMetric)
   String BTreceive;
   if(BT.available()){
     BTreceive = BT.read();
+    Serial.print("BT RECEIVE: ");
+    Serial.println(BTreceive);
+    
     if(BTreceive == "mC"){
       isMetric = true;
       return;
@@ -112,7 +136,7 @@ int collectBattery()
   float perc;
 
   value = analogRead(A0);
-  voltage = value * 5.0/1023;
+  voltage = value * 3.2/1023;
   perc = map(voltage, 3.6, 4.2, 0, 100);
   return perc;
 }
@@ -141,23 +165,33 @@ void releaseBuzzer(int Distance, int buzzerFreq, int minDetection, int maxDetect
   /*  Buzzer warning when an object is within maxDetection range of the device
    *  REFERENCE CODE: tone(pin, frequency, duration)
    *  CASE 1: no buzzer beeps when distance above max detection 
-   *    distance > maxDetection -> noTone(Buzzer_Pin);
+   *    distance > maxDetection
+   *    noTone(Buzzer_Pin);
    *    
    *  CASE 2: continuous buzzer beeps when distance lower than min detection
-   *    distance < minDetection -> tone(Buzzer_Pin, 1800, buzzerFreq);
-   *    
+   *    distance < minDetection -> 
+   *    tone(Buzzer_Pin, 1800, buzzerFreq);
+   *
    *  CASE 3: beep based on buzzerFrequency when distance between max detection and min detection
-   *    minDetection < distance < maxDetection -> tone(Buzzer_Pin, 1800, buzzerFreq); delay(buzzerFreq);
+   *    minDetection < distance < maxDetection
+   *    tone(Buzzer_Pin, 1800, buzzerFreq); delay(buzzerFreq);
    */ 
+
+  int minDetect = minDetection;
+  int maxDetect = maxDetection;
   
-  minDetection = 20;
-  maxDetection = 55;
+  //default value
+  //0 value comparison needs work
+  if(minDetect == 0 && maxDetect == 0)
+  {
+    minDetect = 5;
+    maxDetect = 20;
+  }
 
   //***Buzzer Frequency Controller***
   buzzerFreq = Distance * 5;
-  
   if (Distance > maxDetection){
-    //CASE1:   
+    //CASE1:
     noTone(Buzzer_Pin);                            
   }
   else if(Distance < minDetection){
@@ -172,7 +206,7 @@ void releaseBuzzer(int Distance, int buzzerFreq, int minDetection, int maxDetect
   }
 }
 
-void collectDistance(int, int, int,float &Distance,int &buzzerFreq, bool &isMetric) 
+void collectDistance(int, int, int, float &Distance, int &buzzerFreq, bool &isMetric) 
 {
   /* measures duration the signal takes to traverse from TriggerPin to EchoPin
    * get distance from duration and convert to metric or imperial based on 
@@ -189,7 +223,7 @@ void collectDistance(int, int, int,float &Distance,int &buzzerFreq, bool &isMetr
 
   long Duration;
   Duration = pulseIn(Echo_PIN, HIGH);
-
+  
   if(isMetric = true)
     Distance = convertDistance(Duration, 0);
   else
