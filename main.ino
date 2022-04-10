@@ -3,6 +3,10 @@
 
 const int Trigger_Pin = 2;
 const int Echo_PIN = 3;
+const int Trigger_Pin1 = 9;
+const int Echo_PIN1 = 8;
+int duration, distance1, distance2;
+
 const int Buzzer_Pin = 4;
 const int DHT_Pin = 5;
 const int RedLED_Pin = 6;
@@ -26,6 +30,8 @@ void setup()
 
   pinMode(Trigger_Pin, OUTPUT);
   pinMode(Echo_PIN, INPUT);
+  pinMode(Trigger_Pin1, OUTPUT);
+  pinMode(Echo_PIN1, INPUT); 
   pinMode(Buzzer_Pin, OUTPUT);
   pinMode(RedLED_Pin, OUTPUT);
 }
@@ -39,10 +45,21 @@ void loop()
   int Battery;
 
   //bluetoothReceive(minDetection, maxDetection, isMetric);
+
+  distance1 = SonarSensor(Trigger_Pin, Echo_PIN);
+  distance2 = SonarSensor(Trigger_Pin1, Echo_PIN1);
+  
+  Serial.print("Distance1: "); 
+  Serial.print(distance1);
+
+  Serial.print("         Distance2: "); 
+  Serial.println(distance2);
+  delay(500);
+  
   collectDistance(Trigger_Pin, Echo_PIN, Buzzer_Pin, Distance, buzzerFreq);
   Humidity = dht.readHumidity();
   Temp = dht.readTemperature();
-  
+
   //releaseBuzzer(Distance, buzzerFreq);
   /*
   Battery = collectBattery();
@@ -53,7 +70,7 @@ void loop()
   */
   
   Battery = 100;
-
+/*
   if (millis() - previousMillis > 1500){      //run every 1.5seconds
     previousMillis = millis();
     
@@ -69,7 +86,19 @@ void loop()
       Serial.print("|");
       Serial.println(Battery);
     } 
-  }
+  }*/
+}
+
+int SonarSensor(int trigPinSensor,int echoPinSensor)
+{
+  digitalWrite(trigPinSensor, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPinSensor, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPinSensor, LOW);
+
+  duration = pulseIn(echoPinSensor, HIGH);
+  return (duration/2) / 29.1;  
 }
 
 //http://www.martyncurrey.com/turning-a-led-on-and-off-with-an-arduino-bluetooth-and-android-part-ii-2-way-control/
