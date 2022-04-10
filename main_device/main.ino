@@ -7,22 +7,18 @@ const int Echo_PIN = 3;
 const int Buzzer_Pin = 4;
 const int DHT_Pin = 5;
 const int RedLED_Pin = 6;
-const int rxPin  = 11;
-const int txPin  = 10;
 
 int LED_State = LOW;
 unsigned long previousMillis = 0;
+unsigned long previousMillis1 = 0;
 unsigned long ledinterval = 500;          //***LED BLINK FREQUENCY CONTROLLER***
 const byte SLAVE_ADDRESS = 42;
 
 SimpleDHT11 dht11(DHT_Pin);
-SoftwareSerial BT = SoftwareSerial(txPin, rxPin);                 //TX,RX pins respectively
 
 void setup()
 {
   Serial.begin(9600);                     //Default communication channel-
-  BT.begin(9600);                         //Initiate BT communication
-  Serial.println("Master Serial channel is ready at 9600");
 
   //On Startup - Play Buzzer Tune indicating successful startup to the user.
   runStartupTune();  
@@ -31,13 +27,11 @@ void setup()
   pinMode(Echo_PIN, INPUT);
   pinMode(Buzzer_Pin, OUTPUT);
   pinMode(RedLED_Pin, OUTPUT);
-  pinMode(rxPin, INPUT);
-  pinMode(txPin, OUTPUT);
 }
 
 void loop()
 { 
-  float Distance;
+  int Distance;
   int   buzzerFreq;
   byte DHT11_Temperature;
   byte DHT11_Humidity;
@@ -52,7 +46,7 @@ void loop()
   //releaseBuzzer(Distance, buzzerFreq, minDetection, maxDetection);
 
   //WIP: add cooldown on collecting new temp/humidity/battery values
-  collectTempHumdity(DHT_Pin, DHT11_Temperature, DHT11_Humidity);
+  //collectTempHumdity(DHT_Pin, DHT11_Temperature, DHT11_Humidity);
   
   /*
   Battery = collectBattery();
@@ -63,33 +57,32 @@ void loop()
   */
   Battery = 100;
 
-  Serial.print("A,");
-  Serial.println(Distance);
-  delay(500);
-  Serial.print("B,");
-  Serial.println(DHT11_Temperature);
-  delay(500);   
-  Serial.print("C,");
-  Serial.println(DHT11_Humidity);
-  delay(500);   
-  Serial.print("D,");
-  Serial.println(Battery);
-  delay(500);
+  if (millis() - previousMillis > 1500){    //run every 1.5seconds
+    
+    previousMillis = millis();
+    Serial.println(Distance);
 
-  //string BTsend = Distance;DHT11_Temperature;DHT11_Humidity;Battery
-  BT.print("A,");
-  BT.println(Distance);
-  delay(500);
-  BT.print("B,");
-  BT.println(DHT11_Temperature);
-  delay(500);   
-  BT.print("C,");
-  BT.println(DHT11_Humidity);
-  delay(500);   
-  BT.print("D,");
-  BT.println(Battery);
-  delay(500);
+    if (millis() - previousMillis1 > 10000){   //run every 20seconds
+
+      previousMillis1 = millis();
+      //temp|humidity|battery
+      Serial.print(DHT11_Temperature);
+      Serial.print("|");
+      Serial.print(DHT11_Humidity);  
+      Serial.print("|");
+      Serial.println(Battery);
+    
+    } 
+  }
 }
+
+//http://www.martyncurrey.com/turning-a-led-on-and-off-with-an-arduino-bluetooth-and-android-part-ii-2-way-control/
+//https://groups.google.com/g/mitappinventortest/c/F-9jyPUp72M/m/dAtp0TTcGgAJ
+//delimiter
+//https://groups.google.com/g/mitappinventortest/c/lVaCyAeWm_4/m/ADjvy05wAwAJ
+//test with array of bytes - search Kind of. I have nothing to test the code
+//https://community.appinventor.mit.edu/t/bluetooth-client-speed-and-buffering-issue/16064/18?page=2
+
 
 void bluetoothReceive(int &minDetection, int &maxDetection, bool &isMetric)
 {
@@ -109,8 +102,8 @@ void bluetoothReceive(int &minDetection, int &maxDetection, bool &isMetric)
    */
   
   String BTreceive;
-  if(BT.available()){
-    BTreceive = BT.read();
+  if(Serial.available()){
+    BTreceive = Serial.read();
     Serial.print("BT RECEIVE: ");
     Serial.println(BTreceive);
     
@@ -141,7 +134,7 @@ int collectBattery()
   return perc;
 }
 
-float convertDistance(long duration, int modifier)
+int convertDistance(long duration, int modifier)
 {
   /* modifier = 0
    * raw distance -> imperial
@@ -206,7 +199,7 @@ void releaseBuzzer(int Distance, int buzzerFreq, int minDetection, int maxDetect
   }
 }
 
-void collectDistance(int, int, int, float &Distance, int &buzzerFreq, bool &isMetric) 
+void collectDistance(int, int, int, int &Distance, int &buzzerFreq, bool &isMetric) 
 {
   /* measures duration the signal takes to traverse from TriggerPin to EchoPin
    * get distance from duration and convert to metric or imperial based on 
@@ -282,3 +275,6 @@ void LED_Blink(int LED_Input)
     digitalWrite(LED_Input, LED_State);
   }
 }
+
+//RSSI bullshit
+//https://community.appinventor.mit.edu/t/help-me-with-implementing-a-few-formulas-that-i-need-in-my-arduino-code/20946/2
