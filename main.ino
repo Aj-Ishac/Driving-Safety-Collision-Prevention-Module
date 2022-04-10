@@ -1,6 +1,5 @@
 #include "Arduino.h"
-#include <SimpleDHT.h>
-#include <SoftwareSerial.h>
+#include <DHT.h>
 
 const int Trigger_Pin = 2;
 const int Echo_PIN = 3;
@@ -11,17 +10,19 @@ const int RedLED_Pin = 6;
 int LED_State = LOW;
 unsigned long previousMillis = 0;
 unsigned long previousMillis1 = 0;
-unsigned long ledinterval = 500;          //***LED BLINK FREQUENCY CONTROLLER***
+unsigned long previousMillis2 = 0;
 const byte SLAVE_ADDRESS = 42;
 
-SimpleDHT11 dht11(DHT_Pin);
+DHT dht(5, DHT11);
 
 void setup()
 {
   Serial.begin(9600);                     //Default communication channel-
 
   //On Startup - Play Buzzer Tune indicating successful startup to the user.
-  runStartupTune();  
+  runStartupTune();
+
+  dht.begin();
 
   pinMode(Trigger_Pin, OUTPUT);
   pinMode(Echo_PIN, INPUT);
@@ -32,46 +33,41 @@ void setup()
 void loop()
 { 
   int Distance;
-  int   buzzerFreq;
-  byte DHT11_Temperature;
-  byte DHT11_Humidity;
+  int buzzerFreq;;
+  int Temp;
+  int Humidity;
   int Battery;
-  
-  int minDetection = 0;
-  int maxDetection = 0;
-  bool isMetric;
 
-  bluetoothReceive(minDetection, maxDetection, isMetric);
-  collectDistance(Trigger_Pin, Echo_PIN, Buzzer_Pin, Distance, buzzerFreq, isMetric);
-  //releaseBuzzer(Distance, buzzerFreq, minDetection, maxDetection);
-
-  //WIP: add cooldown on collecting new temp/humidity/battery values
-  //collectTempHumdity(DHT_Pin, DHT11_Temperature, DHT11_Humidity);
+  //bluetoothReceive(minDetection, maxDetection, isMetric);
+  collectDistance(Trigger_Pin, Echo_PIN, Buzzer_Pin, Distance, buzzerFreq);
+  Humidity = dht.readHumidity();
+  Temp = dht.readTemperature();
   
+  //releaseBuzzer(Distance, buzzerFreq);
   /*
   Battery = collectBattery();
   if(Battery < 20)
-    LED_Blink(RedLED_Pin);
+    LED_Blink(500);
   else
     LED_State = HIGH;
   */
+  
   Battery = 100;
 
-  if (millis() - previousMillis > 1500){    //run every 1.5seconds
-    
+  if (millis() - previousMillis > 1500){      //run every 1.5seconds
     previousMillis = millis();
+    
     Serial.println(Distance);
 
-    if (millis() - previousMillis1 > 10000){   //run every 20seconds
-
+    if (millis() - previousMillis1 > 20000){   //run every 20seconds
       previousMillis1 = millis();
-      //temp|humidity|battery
-      Serial.print(DHT11_Temperature);
+      
+      //temp|humidity|battery  
+      Serial.print(Temp);
       Serial.print("|");
-      Serial.print(DHT11_Humidity);  
+      Serial.print(Humidity);  
       Serial.print("|");
       Serial.println(Battery);
-    
     } 
   }
 }
@@ -80,46 +76,8 @@ void loop()
 //https://groups.google.com/g/mitappinventortest/c/F-9jyPUp72M/m/dAtp0TTcGgAJ
 //delimiter
 //https://groups.google.com/g/mitappinventortest/c/lVaCyAeWm_4/m/ADjvy05wAwAJ
-//test with array of bytes - search Kind of. I have nothing to test the code
+//test with array of bytes - search "Kind of. I have nothing to test the code"
 //https://community.appinventor.mit.edu/t/bluetooth-client-speed-and-buffering-issue/16064/18?page=2
-
-
-void bluetoothReceive(int &minDetection, int &maxDetection, bool &isMetric)
-{
-  /* BT.read() from app user input, only occurs when user presses the button responsible:
-   * minDetection, maxDetection, metricConvert, imperialConvert
-   * 
-   * user inputs: minDetection, maxDetection
-   * modifies max/min Detection based on user preferences
-   * 
-   * user inputs: metric convert button
-   * BTreceives = "mC"
-   * bool isMetric = true, triggers metricConvert function on loop from now on
-   * 
-   * user inputs: imperial convert button
-   * BTreceives = "iC"
-   * bool isMetric = off, triggers imperialConvert function on loop from now on
-   */
-  
-  String BTreceive;
-  if(Serial.available()){
-    BTreceive = Serial.read();
-    Serial.print("BT RECEIVE: ");
-    Serial.println(BTreceive);
-    
-    if(BTreceive == "mC"){
-      isMetric = true;
-      return;
-    }  
-    if(BTreceive == "iC"){
-      isMetric = false;
-      return;
-    }
-    int index = BTreceive.indexOf("-");
-    minDetection = (BTreceive.substring(0, index)).toInt();
-    maxDetection = (BTreceive.substring(index + 1)).toInt();
-  } 
-}
 
 int collectBattery()
 {
@@ -153,7 +111,7 @@ int convertDistance(long duration, int modifier)
   return distance;
 }
 
-void releaseBuzzer(int Distance, int buzzerFreq, int minDetection, int maxDetection)
+void releaseBuzzer(int Distance, int buzzerFreq)
 {
   /*  Buzzer warning when an object is within maxDetection range of the device
    *  REFERENCE CODE: tone(pin, frequency, duration)
@@ -169,25 +127,17 @@ void releaseBuzzer(int Distance, int buzzerFreq, int minDetection, int maxDetect
    *    minDetection < distance < maxDetection
    *    tone(Buzzer_Pin, 1800, buzzerFreq); delay(buzzerFreq);
    */ 
-
-  int minDetect = minDetection;
-  int maxDetect = maxDetection;
+    
+  int minDetect = 5;
+  int maxDetect = 20;
   
-  //default value
-  //0 value comparison needs work
-  if(minDetect == 0 && maxDetect == 0)
-  {
-    minDetect = 5;
-    maxDetect = 20;
-  }
-
   //***Buzzer Frequency Controller***
   buzzerFreq = Distance * 5;
-  if (Distance > maxDetection){
+  if (Distance > maxDetect){
     //CASE1:
     noTone(Buzzer_Pin);                            
   }
-  else if(Distance < minDetection){
+  else if(Distance < minDetect){
     //CASE2:
     buzzerFreq = 0;
     tone(Buzzer_Pin, 1800, buzzerFreq);
@@ -199,7 +149,7 @@ void releaseBuzzer(int Distance, int buzzerFreq, int minDetection, int maxDetect
   }
 }
 
-void collectDistance(int, int, int, int &Distance, int &buzzerFreq, bool &isMetric) 
+void collectDistance(int, int, int, int &Distance, int &buzzerFreq) 
 {
   /* measures duration the signal takes to traverse from TriggerPin to EchoPin
    * get distance from duration and convert to metric or imperial based on 
@@ -216,33 +166,8 @@ void collectDistance(int, int, int, int &Distance, int &buzzerFreq, bool &isMetr
 
   long Duration;
   Duration = pulseIn(Echo_PIN, HIGH);
+  Distance = convertDistance(Duration, 0);
   
-  if(isMetric = true)
-    Distance = convertDistance(Duration, 0);
-  else
-    Distance = convertDistance(Duration, 1);
-}
- 
-void collectTempHumdity(int, byte &DHT11_Temperature, byte &DHT11_Humidity)
-{
-    //collect temp and humidity facilitated by the SimpleDHT library
-    byte temperature = 0;
-    byte humidity = 0;
-  
-    int err = SimpleDHTErrSuccess;
-    if ((err = dht11.read(&temperature, &humidity, NULL)) != SimpleDHTErrSuccess){
-    Serial.print("Read DHT11 failed, err=");
-    Serial.print(SimpleDHTErrCode(err));
-    Serial.print(",");
-    Serial.println(SimpleDHTErrDuration(err));
-    
-    delay(200);
-    return;
-    }
-
-    DHT11_Temperature = temperature;
-    DHT11_Humidity = humidity;
-    delay(200); 
 }
 
 void runStartupTune()
@@ -260,19 +185,20 @@ void runStartupTune()
   delay(500);   
 }
 
-void LED_Blink(int LED_Input)
+
+
+void LED_Blink(int frequency)
 {
  /* causes the led to blink based on the global variable
   * unsigned long ledinterval = 500 found at the header of the file
   */
-  unsigned long currentMillis = millis(); 
-  if (currentMillis - previousMillis > ledinterval){
-    previousMillis = currentMillis;
+  if (millis() - previousMillis > frequency){
+    previousMillis2 = millis();
     if (LED_State == LOW)
       LED_State = HIGH;
     else
       LED_State = LOW;
-    digitalWrite(LED_Input, LED_State);
+    digitalWrite(6, LED_State);
   }
 }
 
