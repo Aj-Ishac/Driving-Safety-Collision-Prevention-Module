@@ -1,21 +1,24 @@
-#include "Arduino.h"
 #include <DHT.h>
 
 const int Trigger_Pin = 2;
 const int Echo_PIN = 3;
 const int Trigger_Pin1 = 9;
 const int Echo_PIN1 = 8;
-int duration, distance1, distance2;
-
 const int Buzzer_Pin = 4;
 const int DHT_Pin = 5;
 const int RedLED_Pin = 6;
+const int TiltSwitch_Pin = 10;
+
+int iBuzzerFreq;
+float fDistance, distance1, distance2;
+int iTemp;
+int iHumidity;
+int iBattery;
+int duration; 
 
 int LED_State = LOW;
+unsigned long lgUpdateTime;
 unsigned long previousMillis = 0;
-unsigned long previousMillis1 = 0;
-unsigned long previousMillis2 = 0;
-const byte SLAVE_ADDRESS = 42;
 
 DHT dht(5, DHT11);
 
@@ -34,62 +37,60 @@ void setup()
   pinMode(Echo_PIN1, INPUT); 
   pinMode(Buzzer_Pin, OUTPUT);
   pinMode(RedLED_Pin, OUTPUT);
+  pinMode(TiltSwitch_Pin, INPUT);
+  pinMode(TiltSwitch_Pin, HIGH);
+        lgUpdateTime = millis();
 }
 
 void loop()
-{ 
-  int Distance;
-  int buzzerFreq;;
-  int Temp;
-  int Humidity;
-  int Battery;
-
-  //bluetoothReceive(minDetection, maxDetection, isMetric);
-
-  distance1 = SonarSensor(Trigger_Pin, Echo_PIN);
-  distance2 = SonarSensor(Trigger_Pin1, Echo_PIN1);
-  
-  Serial.print("Distance1: "); 
-  Serial.print(distance1);
-
-  Serial.print("         Distance2: "); 
-  Serial.println(distance2);
-  delay(500);
-  
-  collectDistance(Trigger_Pin, Echo_PIN, Buzzer_Pin, Distance, buzzerFreq);
-  Humidity = dht.readHumidity();
-  Temp = dht.readTemperature();
-
+{
+  collectDistance(Trigger_Pin, Echo_PIN);
+  iHumidity = int(dht.readHumidity());
+  iTemp = int(dht.readTemperature());
   //releaseBuzzer(Distance, buzzerFreq);
-  /*
-  Battery = collectBattery();
-  if(Battery < 20)
-    LED_Blink(500);
-  else
-    LED_State = HIGH;
-  */
-  
-  Battery = 100;
-/*
-  if (millis() - previousMillis > 1500){      //run every 1.5seconds
-    previousMillis = millis();
-    
-    Serial.println(Distance);
-
-    if (millis() - previousMillis1 > 20000){   //run every 20seconds
-      previousMillis1 = millis();
       
-      //temp|humidity|battery  
-      Serial.print(Temp);
-      Serial.print("|");
-      Serial.print(Humidity);  
-      Serial.print("|");
-      Serial.println(Battery);
-    } 
-  }*/
+      /*
+      fBattery = collectBattery();
+      if(fBattery < 20)
+        LED_Blink(500);
+      else
+        LED_State = HIGH;
+      */
+      
+      //LED_Blink(500);
+      iBattery = 100;
+    if(millis() - lgUpdateTime > 1000) //Loop send approx every 1.5 seconds
+      {
+           lgUpdateTime = millis();
+           isIdle();
+           Serial.print(fDistance/100, 2);
+           Serial.print("|");  
+           Serial.print(iTemp);
+           Serial.print("|");
+           Serial.print(iHumidity);  
+           Serial.print("|");
+           Serial.print(iBattery);
+           Serial.println();
+      }
 }
 
-int SonarSensor(int trigPinSensor,int echoPinSensor)
+//http://www.martyncurrey.com/turning-a-led-on-and-off-with-an-arduino-bluetooth-and-android-part-ii-2-way-control/
+//https://groups.google.com/g/mitappinventortest/c/F-9jyPUp72M/m/dAtp0TTcGgAJ
+//delimiter
+//https://groups.google.com/g/mitappinventortest/c/lVaCyAeWm_4/m/ADjvy05wAwAJ
+//test with array of bytes - search "Kind of. I have nothing to test the code"
+//https://community.appinventor.mit.edu/t/bluetooth-client-speed-and-buffering-issue/16064/18?page=2
+
+void isIdle()
+{
+  int Activity_Val = digitalRead(TiltSwitch_Pin);
+  if (Activity_Val == HIGH)
+    Serial.println("HIGH");
+  else
+    Serial.println("LOW");
+}
+
+float SonarSensor(int trigPinSensor, int echoPinSensor)
 {
   digitalWrite(trigPinSensor, LOW);
   delayMicroseconds(2);
@@ -101,12 +102,21 @@ int SonarSensor(int trigPinSensor,int echoPinSensor)
   return (duration/2) / 29.1;  
 }
 
-//http://www.martyncurrey.com/turning-a-led-on-and-off-with-an-arduino-bluetooth-and-android-part-ii-2-way-control/
-//https://groups.google.com/g/mitappinventortest/c/F-9jyPUp72M/m/dAtp0TTcGgAJ
-//delimiter
-//https://groups.google.com/g/mitappinventortest/c/lVaCyAeWm_4/m/ADjvy05wAwAJ
-//test with array of bytes - search "Kind of. I have nothing to test the code"
-//https://community.appinventor.mit.edu/t/bluetooth-client-speed-and-buffering-issue/16064/18?page=2
+void collectDistance(int, int) 
+{
+  /* measures duration the signal takes to traverse from TriggerPin to EchoPin
+   * this operation is calculated from two seperate Ultrasonic Sensors of which the lower value 
+   * is picked and determined to be the distance that's sent out to the App
+   */
+   
+  distance1 = SonarSensor(Trigger_Pin, Echo_PIN);
+  distance2 = SonarSensor(Trigger_Pin1, Echo_PIN1);
+
+  if(distance1 > distance2)
+    fDistance = distance2;
+  else
+    fDistance = distance1;
+ }
 
 int collectBattery()
 {
@@ -115,29 +125,10 @@ int collectBattery()
   float voltage;
   float perc;
 
-  value = analogRead(A0);
+    value = analogRead(A0);
   voltage = value * 3.2/1023;
-  perc = map(voltage, 3.6, 4.2, 0, 100);
+     perc = map(voltage, 3.6, 4.2, 0, 100);
   return perc;
-}
-
-int convertDistance(long duration, int modifier)
-{
-  /* modifier = 0
-   * raw distance -> imperial
-   * 
-   * modifier = 1
-   * raw distance -> metric
-   */
-  
-  int distance;
-  if(modifier == 0){
-    distance = (duration/2) / 74;
-  }
-  else if(modifier == 1){
-    distance = (duration * 0.034) / 2;
-  }
-  return distance;
 }
 
 void releaseBuzzer(int Distance, int buzzerFreq)
@@ -161,12 +152,12 @@ void releaseBuzzer(int Distance, int buzzerFreq)
   int maxDetect = 20;
   
   //***Buzzer Frequency Controller***
-  buzzerFreq = Distance * 5;
-  if (Distance > maxDetect){
+  buzzerFreq = fDistance * 5;
+  if (fDistance > maxDetect){
     //CASE1:
     noTone(Buzzer_Pin);                            
   }
-  else if(Distance < minDetect){
+  else if(fDistance < minDetect){
     //CASE2:
     buzzerFreq = 0;
     tone(Buzzer_Pin, 1800, buzzerFreq);
@@ -176,27 +167,6 @@ void releaseBuzzer(int Distance, int buzzerFreq)
     tone(Buzzer_Pin, 1800, buzzerFreq);
     delay(buzzerFreq);
   }
-}
-
-void collectDistance(int, int, int, int &Distance, int &buzzerFreq) 
-{
-  /* measures duration the signal takes to traverse from TriggerPin to EchoPin
-   * get distance from duration and convert to metric or imperial based on 
-   * existing isMetric bool
-   * isMetric = true      correlates to    [raw distance -> metric]
-   * isMetric = false     correlates to    [raw distance -> imperial]
-   */
-
-  digitalWrite(Trigger_Pin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(Trigger_Pin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(Trigger_Pin, LOW);
-
-  long Duration;
-  Duration = pulseIn(Echo_PIN, HIGH);
-  Distance = convertDistance(Duration, 0);
-  
 }
 
 void runStartupTune()
@@ -214,15 +184,14 @@ void runStartupTune()
   delay(500);   
 }
 
-
-
 void LED_Blink(int frequency)
 {
- /* causes the led to blink based on the global variable
-  * unsigned long ledinterval = 500 found at the header of the file
+ /* the famous blink without delay Arduino example
+  * takes frequency of the led blink as parameter
   */
+  
   if (millis() - previousMillis > frequency){
-    previousMillis2 = millis();
+    previousMillis = millis();
     if (LED_State == LOW)
       LED_State = HIGH;
     else
