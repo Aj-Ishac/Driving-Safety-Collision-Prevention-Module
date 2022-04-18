@@ -1,4 +1,5 @@
 #include <DHT.h>
+#include "LowPower.h"
 
 const int Trigger_Pin = 2;
 const int Echo_PIN = 3;
@@ -10,21 +11,23 @@ const int RedLED_Pin = 6;
 const int TiltSwitch_Pin = 10;
 
 int iBuzzerFreq;
-float fDistance, distance1, distance2;
+float fDistance;
 int iTemp;
 int iHumidity;
 int iBattery;
-int duration; 
 
 int LED_State = LOW;
 unsigned long lgUpdateTime;
+unsigned long lgInactivityTime;
 unsigned long previousMillis = 0;
+
+const long InternalReferenceVoltage = 1062;
 
 DHT dht(5, DHT11);
 
 void setup()
 {
-  Serial.begin(9600);                     //Default communication channel-
+  Serial.begin(9600);
 
   //On Startup - Play Buzzer Tune indicating successful startup to the user.
   runStartupTune();
@@ -39,7 +42,8 @@ void setup()
   pinMode(RedLED_Pin, OUTPUT);
   pinMode(TiltSwitch_Pin, INPUT);
   pinMode(TiltSwitch_Pin, HIGH);
-        lgUpdateTime = millis();
+  
+  lgUpdateTime = millis();
 }
 
 void loop()
@@ -57,12 +61,13 @@ void loop()
         LED_State = HIGH;
       */
       
-      //LED_Blink(500);
+      LED_Blink(500);
       iBattery = 100;
-    if(millis() - lgUpdateTime > 1000) //Loop send approx every 1.5 seconds
+      if(millis() - lgUpdateTime > 1000) //Loop send approx every 1s
       {
+           detectInactivity(300000);  //5mins/300000 of inactivity for lowPower mode to activate 
            lgUpdateTime = millis();
-           isIdle();
+           
            Serial.print(fDistance/100, 2);
            Serial.print("|");  
            Serial.print(iTemp);
@@ -74,33 +79,62 @@ void loop()
       }
 }
 
-//http://www.martyncurrey.com/turning-a-led-on-and-off-with-an-arduino-bluetooth-and-android-part-ii-2-way-control/
-//https://groups.google.com/g/mitappinventortest/c/F-9jyPUp72M/m/dAtp0TTcGgAJ
-//delimiter
-//https://groups.google.com/g/mitappinventortest/c/lVaCyAeWm_4/m/ADjvy05wAwAJ
-//test with array of bytes - search "Kind of. I have nothing to test the code"
-//https://community.appinventor.mit.edu/t/bluetooth-client-speed-and-buffering-issue/16064/18?page=2
-
-void isIdle()
+void onWakeUp()
 {
-  int Activity_Val = digitalRead(TiltSwitch_Pin);
-  if (Activity_Val == HIGH)
-    Serial.println("HIGH");
-  else
-    Serial.println("LOW");
+  //wake up tune from lowPower_Mode
+  tone(Buzzer_Pin, 660, 100);
+  delay(75);
+  tone(Buzzer_Pin, 660, 100);
+  delay(150);
+  tone(Buzzer_Pin, 660, 100);
+  delay(75);
+  tone(Buzzer_Pin, 660, 100);
+  delay(150);
+
+  Serial.println("No more sleepy sleepy!!");
+
+}
+
+void detectInactivity(long inactivityDef)
+{
+  /* If Activity_Val == HIGH for duration of /Interval/, set bool isActive to false, check state of LP_Mode and trigger inside if needed 
+   * Reset timer when Activity_Val == LOW, set bool isActive to true and check state of LP_Mode before enabling or disabling
+   * Low Power Mode:
+   * https://learn.sparkfun.com/tutorials/reducing-arduino-power-consumption/all
+   * https://github.com/rocketscream/Low-Power/blob/master/LowPower.cpp
+   */ 
+   
+  bool isActive;
+  int activityValue = digitalRead(TiltSwitch_Pin);
+  
+  if(activityValue == LOW){
+      
+    isActive = true;
+    lgInactivityTime = millis();
+  }
+
+  if(millis() - lgInactivityTime >= inactivityDef){
+    isActive = false;
+    LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
+  }
 }
 
 float SonarSensor(int trigPinSensor, int echoPinSensor)
 {
+  //40ms delay on the rotation between the two UltraSensors
+  //edge case where two Ultrasonics can mess up distance collection reliability
+  
   digitalWrite(trigPinSensor, LOW);
   delayMicroseconds(2);
   digitalWrite(trigPinSensor, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPinSensor, LOW);
 
-  duration = pulseIn(echoPinSensor, HIGH);
-  return (duration/2) / 29.1;  
+  int duration = pulseIn(echoPinSensor, HIGH);
+  return (duration/2) / 29.1; 
 }
+
+
 
 void collectDistance(int, int) 
 {
@@ -109,8 +143,13 @@ void collectDistance(int, int)
    * is picked and determined to be the distance that's sent out to the App
    */
    
-  distance1 = SonarSensor(Trigger_Pin, Echo_PIN);
-  distance2 = SonarSensor(Trigger_Pin1, Echo_PIN1);
+  float distance1 = SonarSensor(Trigger_Pin, Echo_PIN);
+  float distance2 = SonarSensor(Trigger_Pin1, Echo_PIN1);
+
+  Serial.print(distance1);
+  Serial.print(" ");
+  Serial.println(distance2);
+  delay(1000);
 
   if(distance1 > distance2)
     fDistance = distance2;
@@ -201,4 +240,5 @@ void LED_Blink(int frequency)
 }
 
 //RSSI bullshit
+//https://community.appinventor.mit.edu/t/arduino-distance-meassuring-through-bluetooth-classic-signal-strength-rssi-project/21175
 //https://community.appinventor.mit.edu/t/help-me-with-implementing-a-few-formulas-that-i-need-in-my-arduino-code/20946/2
