@@ -9,5 +9,5 @@ Product requirements: cost effective, fast feedback run-time, portable, weather-
 The project has been a valuable learning experience in terms of building a product around constraints based on similar products on the
 market and safety standards.
 
-Backend: C++ Arduino  
+Backend: C++  
 Frontend: MIT App Inventor
