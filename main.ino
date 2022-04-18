@@ -5,6 +5,7 @@ const int Trigger_Pin = 2;
 const int Echo_PIN = 3;
 const int Trigger_Pin1 = 9;
 const int Echo_PIN1 = 8;
+
 const int Buzzer_Pin = 4;
 const int DHT_Pin = 5;
 const int RedLED_Pin = 6;
@@ -35,9 +36,13 @@ void setup()
   dht.begin();
 
   pinMode(Trigger_Pin, OUTPUT);
-  pinMode(Echo_PIN, INPUT);
+  pinMode(Echo_PIN, INPUT_PULLUP);
+  digitalWrite(Trigger_Pin, LOW);
+  
   pinMode(Trigger_Pin1, OUTPUT);
-  pinMode(Echo_PIN1, INPUT); 
+  pinMode(Echo_PIN1, INPUT_PULLUP); 
+  digitalWrite(Trigger_Pin1, LOW);
+  
   pinMode(Buzzer_Pin, OUTPUT);
   pinMode(RedLED_Pin, OUTPUT);
   pinMode(TiltSwitch_Pin, INPUT);
@@ -48,7 +53,7 @@ void setup()
 
 void loop()
 {
-  collectDistance(Trigger_Pin, Echo_PIN);
+  collectDistance();
   iHumidity = int(dht.readHumidity());
   iTemp = int(dht.readTemperature());
   //releaseBuzzer(Distance, buzzerFreq);
@@ -121,35 +126,55 @@ void detectInactivity(long inactivityDef)
 
 float SonarSensor(int trigPinSensor, int echoPinSensor)
 {
-  //40ms delay on the rotation between the two UltraSensors
-  //edge case where two Ultrasonics can mess up distance collection reliability
+  /* JSN-SR04T instead of the standard HC-SR04 for waterproof purposes
+   * a lot of babysitting was needed to clean up the frequent anomalies and incorrect/error readings.
+   * 
+   * edge cases needed to clean up:
+   * min detection range is 20, with 0 readings being errors.
+   * 676 is the return value for error reading of lost echos.
+   * 
+   */
   
-  digitalWrite(trigPinSensor, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPinSensor, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPinSensor, LOW);
+  long duration = 0;
+  float distance = 0;
+  int watchloop = 0;
 
-  int duration = pulseIn(echoPinSensor, HIGH);
-  return (duration/2) / 29.1; 
+  digitalWrite(trigPinSensor, LOW);
+  delay(2);                           // waiting 2,000uS (or 686cm (>22ft) to eliminate "echo noise")
+
+  // only grab values under 20ft/610cm (for some reason, 676 is a common return error for ∞ distance)
+  while ((distance == 0) || (distance > 610)) {
+    digitalWrite(trigPinSensor, HIGH);
+    delayMicroseconds(20);
+    digitalWrite(trigPinSensor, LOW);
+
+    duration = pulseIn(echoPinSensor, HIGH);
+    distance = duration * 0.034 / 2;
+
+
+    // Catch funky ∞ distance readings
+    watchloop++;        
+    if (watchloop > 20){      // If errant "676" readings 20 times
+      distance = 610;         // set distance to 610cm (20ft) 
+      break;                  // and break out of loop (not really needed if forced to 610)
+    }
+  }
+  return distance;
 }
 
 
 
-void collectDistance(int, int) 
+void collectDistance() 
 {
   /* measures duration the signal takes to traverse from TriggerPin to EchoPin
    * this operation is calculated from two seperate Ultrasonic Sensors of which the lower value 
    * is picked and determined to be the distance that's sent out to the App
+   * 33ms delay on the rotation between the two UltraSensors
    */
    
   float distance1 = SonarSensor(Trigger_Pin, Echo_PIN);
+  delay(33);
   float distance2 = SonarSensor(Trigger_Pin1, Echo_PIN1);
-
-  Serial.print(distance1);
-  Serial.print(" ");
-  Serial.println(distance2);
-  delay(1000);
 
   if(distance1 > distance2)
     fDistance = distance2;
