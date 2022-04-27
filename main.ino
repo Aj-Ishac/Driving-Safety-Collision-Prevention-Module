@@ -1,5 +1,5 @@
 #include <DHT.h>
-#include "LowPower.h"
+#include <LowPower.h>
 
 const int Trigger_Pin = 2;
 const int Echo_PIN = 3;
@@ -20,7 +20,6 @@ int iBattery;
 int LED_State = LOW;
 unsigned long lgUpdateTime;
 unsigned long lgInactivityTime;
-unsigned long lgBeepFreqTime;
 unsigned long previousMillis = 0;
 
 const long InternalReferenceVoltage = 1062;
@@ -33,10 +32,9 @@ void setup()
 
   //On Startup - Play Buzzer Tune indicating successful startup to the user.
   runStartupTune();
-  
+
   dht.begin();
-  lgUpdateTime = millis();
-  
+
   pinMode(Trigger_Pin, OUTPUT);
   pinMode(Echo_PIN, INPUT_PULLUP);
   digitalWrite(Trigger_Pin, LOW);
@@ -48,6 +46,9 @@ void setup()
   pinMode(Buzzer_Pin, OUTPUT);
   pinMode(RedLED_Pin, OUTPUT);
   pinMode(TiltSwitch_Pin, INPUT);
+  //pinMode(TiltSwitch_Pin, HIGH);
+  
+  lgUpdateTime = millis();
 }
 
 void loop()
@@ -60,6 +61,9 @@ void loop()
       /*
       fBattery = collectBattery();
       if(fBattery < 20)
+        LED_Blink(500);
+      else
+        LED_State = HIGH;
       {
         if(millis() - lgUpdateTime > 60000)
         {
@@ -68,7 +72,6 @@ void loop()
         }
       }
       */
-      
       LED_Blink(500);
       iBattery = 100;
       if(millis() - lgUpdateTime > 1000) //Loop send approx every 1s
@@ -89,7 +92,23 @@ void loop()
       }
 }
 
-void detectInactivity(long activityDef)
+void onWakeUp()
+{
+  //wake up tune from lowPower_Mode
+  tone(Buzzer_Pin, 660, 100);
+  delay(75);
+  tone(Buzzer_Pin, 660, 100);
+  delay(150);
+  tone(Buzzer_Pin, 660, 100);
+  delay(75);
+  tone(Buzzer_Pin, 660, 100);
+  delay(150);
+
+  Serial.println("No more sleepy sleepy!!");
+
+}
+
+void detectInactivity(long inactivityDef)
 {
   /* If Activity_Val == HIGH for duration of /Interval/, set bool isActive to false, check state of LP_Mode and trigger inside if needed 
    * Reset timer when Activity_Val == LOW, set bool isActive to true and check state of LP_Mode before enabling or disabling
@@ -102,10 +121,13 @@ void detectInactivity(long activityDef)
   int activityValue = digitalRead(TiltSwitch_Pin);
   
   if(activityValue == LOW){
+      
+    isActive = true;
     lgInactivityTime = millis();
   }
 
-  if(millis() - lgInactivityTime >= activityDef){
+  if(millis() - lgInactivityTime >= inactivityDef){
+    isActive = false;
     LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
   }
 }
@@ -114,9 +136,11 @@ float SonarSensor(int trigPinSensor, int echoPinSensor)
 {
   /* JSN-SR04T instead of the standard HC-SR04 for waterproof purposes
    * a lot of babysitting was needed to clean up the frequent anomalies and incorrect/error readings.
-   * edge cases needed to clean up:AZ
+   * 
+   * edge cases needed to clean up:
    * min detection range is 20, with 0 readings being errors.
    * 676 is the return value for error reading of lost echos.
+   * 
    */
   
   long duration = 0;
@@ -146,6 +170,8 @@ float SonarSensor(int trigPinSensor, int echoPinSensor)
   return distance;
 }
 
+
+
 void collectDistance() 
 {
   /* measures duration the signal takes to traverse from TriggerPin to EchoPin
@@ -157,7 +183,7 @@ void collectDistance()
   float distance1 = SonarSensor(Trigger_Pin, Echo_PIN);
   delay(33);
   float distance2 = SonarSensor(Trigger_Pin1, Echo_PIN1);
-
+  
   if(distance1 > distance2)
     fDistance = distance2;
   else
@@ -173,7 +199,7 @@ int collectBattery()
 
     value = analogRead(A0);
   voltage = value * 3.2/1023;
-     perc = map(voltage, 3.6, 4.2, 0, 100);
+     perc = map(voltage, 3.6, 4.95, 0, 100);
   return perc;
 }
 
