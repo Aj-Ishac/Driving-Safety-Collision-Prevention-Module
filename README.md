@@ -6,8 +6,7 @@ Gathered data is relayed to the user through Bluetooth to the Android app to war
 
 Product requirements: cost effective, fast feedback run-time, portable, weather-proof. 
 
-The project has been a valuable learning experience in terms of building a product around constraints based on similar products on the
-market and safety standards.
+The project has been a valuable learning experience in terms of building a product from start to finish with respect to automobile equipment safety regulations and competitive to similar products on the markt.
 
-Backend: C++  
-Frontend: MIT App Inventor
+Backend:  Arduino C++  
+Frontend: Android App using MIT App Inventor
