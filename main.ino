@@ -57,8 +57,9 @@ void loop()
   iTemp = int(dht.readTemperature());
   //releaseBuzzer(Distance, buzzerFreq);
       
-      /*
+      
       fBattery = collectBattery();
+      //single buzzer beep every 60seconds when battery is below 20%
       if(fBattery < 20)
       {
         if(millis() - lgUpdateTime > 60000)
@@ -67,13 +68,13 @@ void loop()
           lgBeepFreqTime = millis();
         }
       }
-      */
       
-      LED_Blink(500);
-      iBattery = 100;
+      
+      //LED_Blink(500);
+      //iBattery = 100;
       if(millis() - lgUpdateTime > 1500) //Loop send approx every 1s
       {
-           detectInactivity(300000);  //5mins/300000 of inactivity for lowPower mode to activate 
+           //detectInactivity(300000);  //5mins/300000 of inactivity for lowPower mode to activate 
            lgUpdateTime = millis();
            
            Serial.print(fDistance/100, 2);
@@ -136,11 +137,10 @@ float SonarSensor(int trigPinSensor, int echoPinSensor)
     distance = duration * 0.034 / 2;
 
 
-    // Catch funky ∞ distance readings
     watchloop++;        
-    if (watchloop > 3){      // If errant "676" readings 20 times
+    if (watchloop > 3){       //three attempts before break as timeout
       distance = 610;         // set distance to 610cm (20ft) 
-      break;                  // and break out of loop (not really needed if forced to 610)
+      break;                  
     }
   }
   return distance;
