@@ -58,13 +58,13 @@ void loop()
   //releaseBuzzer(Distance, buzzerFreq);
       
       
-      fBattery = collectBattery();
+      iBattery = collectBattery();
       //single buzzer beep every 60seconds when battery is below 20%
-      if(fBattery < 20)
+      if(iBattery < 20)
       {
         if(millis() - lgUpdateTime > 60000)
         {
-          tone(Buzzer_Pin, 1800, buzzerFreq);
+          tone(Buzzer_Pin, 1800);
           lgBeepFreqTime = millis();
         }
       }
@@ -84,6 +84,8 @@ void loop()
            Serial.print(iHumidity);  
            Serial.print("|");
            Serial.print(iBattery);
+           //Serial.print("|");
+           //Serial.print(readVcc());
            //Serial.print("|");
            //Serial.print(digitalRead(TiltSwitch_Pin));
            Serial.println();
@@ -165,16 +167,31 @@ void collectDistance()
     fDistance = distance1;
  }
 
+ long readVcc() {
+  long result;
+  // Read 1.1V reference against AVcc
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  delay(2); // Wait for Vref to settle
+  ADCSRA |= _BV(ADSC); // Convert
+  while (bit_is_set(ADCSRA,ADSC));
+  result = ADCL;
+  result |= ADCH<<8;
+  result = 1126400L / result; // Back-calculate AVcc in mV
+  return result/1023;
+}
+
+
 int collectBattery()
 {
   //reads battery voltage and returns battery value int in a range of 0-100
   int value = 0;
   float voltage;
-  float perc;
+  int perc;
 
-    value = analogRead(A0);
-  voltage = value * 3.2/1023;
-     perc = map(voltage, 3.6, 4.95, 0, 100);
+  //value = analogRead(A0);
+  //voltage = value * 3.2/1023;
+  voltage = readVcc();
+     perc = map(voltage, 3.6, 5, 0, 100);
   return perc;
 }
 
