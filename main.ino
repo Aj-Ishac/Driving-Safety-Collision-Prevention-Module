@@ -74,7 +74,7 @@ void loop()
       //iBattery = 100;
       if(millis() - lgUpdateTime > 1500) //Loop send approx every 1s
       {
-           //detectInactivity(300000);  //5mins/300000 of inactivity for lowPower mode to activate 
+           detectInactivity(300000);  //5mins/300000 of inactivity for lowPower mode to activate 
            lgUpdateTime = millis();
            
            Serial.print(fDistance/100, 2);
@@ -84,10 +84,6 @@ void loop()
            Serial.print(iHumidity);  
            Serial.print("|");
            Serial.print(iBattery);
-           //Serial.print("|");
-           //Serial.print(readVcc());
-           //Serial.print("|");
-           //Serial.print(digitalRead(TiltSwitch_Pin));
            Serial.println();
       }
 }
@@ -157,26 +153,27 @@ void collectDistance()
    */
    
   float distance1 = SonarSensor(Trigger_Pin, Echo_PIN);
-  /*
+  
   delay(33);
   float distance2 = SonarSensor(Trigger_Pin1, Echo_PIN1);
 
   if(distance1 > distance2)
     fDistance = distance2;
-  else*/
+  else
     fDistance = distance1;
  }
 
  long readVcc() {
+  
   long result;
-  // Read 1.1V reference against AVcc
   ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  delay(2); // Wait for Vref to settle
-  ADCSRA |= _BV(ADSC); // Convert
+  delay(2);
+  ADCSRA |= _BV(ADSC);
   while (bit_is_set(ADCSRA,ADSC));
   result = ADCL;
   result |= ADCH<<8;
-  result = 1126400L / result; // Back-calculate AVcc in mV
+  result = 1126400L / result;
+  
   return result/1023;
 }
 
