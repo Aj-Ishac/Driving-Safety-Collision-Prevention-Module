@@ -1,6 +1,3 @@
-<p align="center">
-  <img width="650" height="230" src="Assets/Drive%20Safe.png"></p>
-  
 # <p align="center">Driving Safety and Collision Prevention Module</p>
 
 <img align="right" width="400" src="Assets/black.png">
