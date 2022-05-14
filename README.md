@@ -3,7 +3,7 @@
   
 # <p align="center">Driving Safety and Collision Prevention Module</p>
 
-<img align="right" width="500" src="Assets/black.png">
+<img align="right" width="450" src="Assets/black.png">
 
 <br/>
 <br/>
@@ -50,7 +50,7 @@ Circuit Diagram designed in EasyEDA.
 
 # 
 
-<img align="right" width="700" src="Assets/blue.png">  
+<img align="right" width="650" src="Assets/blue.png">  
 <br/>
 <br/>
 <br/>
