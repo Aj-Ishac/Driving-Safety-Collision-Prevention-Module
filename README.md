@@ -61,7 +61,6 @@ Circuit Diagram designed in EasyEDA.
 Prototype model detailing interior designed for components cutouts and cable management.
 <br/>
 <br/>
-<br/>
 Modeling Software: Autodesk 3ds Max
 
 <br clear="right"/>
