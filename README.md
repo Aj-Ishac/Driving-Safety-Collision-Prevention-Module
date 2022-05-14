@@ -37,7 +37,8 @@ Components:
     - JSN-SR04T
     - HC-05
     - DHT11
-    - Piezzo Buzzer  
+    - SW520D  
+    - Buzzer 
 </p>
 
 <p align="center">  
