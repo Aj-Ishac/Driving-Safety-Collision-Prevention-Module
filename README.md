@@ -44,7 +44,7 @@ Components:
 </p>
 
 <p align="center">  
-Circuit Diagram designed in EasyEDA.  
+Circuit Diagram designed in **EasyEDA**.  
 </p>
 <br clear="left"/>
 
@@ -58,12 +58,12 @@ Circuit Diagram designed in EasyEDA.
 <br/>
 <br/>
 <br/>
-Prototype model detailing interior designed for components cutouts and cable management.
+Prototype model detailing interior designed for component cutouts and cable management.
 <br/>
 <br/>
 Modeling Software:  
 <br/>
-Autodesk 3ds Max
+**Autodesk 3ds Max**
 
 <br clear="right"/>
 
