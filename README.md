@@ -62,6 +62,7 @@ Prototype model detailing interior designed for components cutouts and cable man
 <br/>
 <br/>
 Modeling Software:  
+<br/>
 Autodesk 3ds Max
 
 <br clear="right"/>
