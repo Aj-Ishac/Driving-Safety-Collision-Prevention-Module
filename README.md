@@ -61,7 +61,7 @@ Circuit Diagram designed in EasyEDA.
 <br clear="left"/>
 
 # 
-## <p align="center">3d Housing Case </p>
+## <p align="center">Housing Case </p>
 
 <img align="right" width="550" src="Assets/blue.png">  
 <br/>
