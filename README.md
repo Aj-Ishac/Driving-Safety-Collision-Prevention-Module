@@ -76,6 +76,7 @@ The image to the right represents the first iteration of the 3d model design det
 An image of the final iteration of the product can be found at the top of this readme with improvements to the interior space, upgraded shelf, and the addition of bottom-side standoffs.
 <br/>
 <br/>
+<br/>
 Modeling Software: Autodesk 3ds Max
 
 <br clear="right"/>
