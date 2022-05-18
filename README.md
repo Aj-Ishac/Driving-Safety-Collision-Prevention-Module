@@ -83,6 +83,8 @@ Built using Autodesk 3ds Max
 
 <br/>
 <br/>
+
+#
 <p align="center">
   The project has been a valuable learning experience in terms of building a product from start to finish with respect to automobile equipment safety regulations and competitive to similar products on the market.
 </p>
