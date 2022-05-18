@@ -77,7 +77,7 @@ An image of the final iteration of the product can be found at the top of this r
 <br/>
 <br/>
 <br/>
-Modeling Software: Autodesk 3ds Max
+Built using Autodesk 3ds Max
 
 <br clear="right"/>
 
