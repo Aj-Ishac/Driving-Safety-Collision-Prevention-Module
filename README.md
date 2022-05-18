@@ -1,4 +1,4 @@
-# <p align="center">Driving Safety and Collision Prevention Module</p>
+# <p align="center">**Driving Safety and Collision Prevention Module**</p>
 
 <img align="right" width="400" src="Assets/black.png">
 
@@ -24,14 +24,31 @@ Gathered data is relayed to the user through Bluetooth to the Android app to war
 
 Requirements and constraints were developed with competitive market products in mind and with respect to automobile equipment safety regulations.
 <br clear="right"/>
+# 
+## <p align="center">Android App</p>
+<br/>
+<p align="center">
+  <img alt="Light" src="Assets/p1.jpg" width="33%">
+&nbsp; &nbsp; &nbsp; &nbsp;
+  <img alt="Dark" src="Assets/p2.jpg" width="33%">
+</p>
+
+
+<p align="center">
+    The Front-End Android app is responsible for receiving the processed data from the hardware and presenting it to the user along with warning alerts when necessary. The application is built using the MIT App Inventor framework and connects to the back-end using Bluetooth.
+</p>
+
+
+<p align="left">  
+  
+# 
+## <p align="center">Circuit Diagram Design</p>
+
 
 <img align="left" width="500" src="Assets/Schematic_Drive Safe Circuit_2022-05-14 (1).png">  
 
 <p align="center">  
-<br/>
-<br/>
-<br/>
-Components:  
+  Components:  
   
     - Arduino Nano
     - JSN-SR04T
