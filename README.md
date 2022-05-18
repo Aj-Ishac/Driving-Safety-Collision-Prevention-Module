@@ -26,19 +26,15 @@ Requirements and constraints were developed with competitive market products in 
 <br clear="right"/>
 # 
 ## <p align="center">Android App</p>
+<p align="center">
+    The Front-End Android app is responsible for receiving the processed data from the hardware and presenting it to the user along with warning alerts when necessary. The application is built using the MIT App Inventor framework and connects to the brains of the device using Bluetooth.
+</p>
 <br/>
 <p align="center">
   <img alt="Light" src="Assets/p1.jpg" width="33%">
 &nbsp; &nbsp; &nbsp; &nbsp;
   <img alt="Dark" src="Assets/p2.jpg" width="33%">
 </p>
-
-
-<p align="center">
-    The Front-End Android app is responsible for receiving the processed data from the hardware and presenting it to the user along with warning alerts when necessary. The application is built using the MIT App Inventor framework and connects to the brains of the device using Bluetooth.
-</p>
-
-
 <p align="left">  
   
 # 
