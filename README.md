@@ -67,7 +67,7 @@ Circuit Diagram designed in EasyEDA.
 # 
 ## <p align="center">Product 3d Housing Case </p>
 
-<img align="right" width="600" src="Assets/blue.png">  
+<img align="right" width="550" src="Assets/blue.png">  
 <br/>
 <br/>
 The image to the right represents the first iteration of the 3d model design detailing interior with an emphasis component cutouts and cable management.
