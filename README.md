@@ -48,6 +48,7 @@ Requirements and constraints were developed with competitive market products in 
 <img align="left" width="500" src="Assets/Schematic_Drive Safe Circuit_2022-05-14 (1).png">  
 
 <p align="center">  
+  <br/>
   Components:  
   
     - Arduino Nano
@@ -64,21 +65,18 @@ Circuit Diagram designed in EasyEDA.
 <br clear="left"/>
 
 # 
+## <p align="center">Product 3d Housing Case </p>
 
 <img align="right" width="600" src="Assets/blue.png">  
 <br/>
 <br/>
+The image to the right represents the first iteration of the 3d model design detailing interior with an emphasis component cutouts and cable management.
 <br/>
 <br/>
+An image of the final iteration of the product can be found at the top of this readme with improvements to the interior space, upgraded shelf, and the addition of bottom-side standoffs.
 <br/>
 <br/>
-<br/>
-Prototype model detailing interior designed for component cutouts and cable management.
-<br/>
-<br/>
-Modeling Software:  
-<br/>
-Autodesk 3ds Max
+Modeling Software: Autodesk 3ds Max
 
 <br clear="right"/>
 
